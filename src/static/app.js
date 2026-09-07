@@ -25,8 +25,58 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants">
+            <h5>Participants</h5>
+            <ul>
+              ${details.participants.length
+                ? details.participants
+                    .map(
+                      (participant) => `
+                        <li>
+                          <span>${participant}</span>
+                          <button
+                            type="button"
+                            class="delete-participant"
+                            data-activity="${encodeURIComponent(name)}"
+                            data-email="${encodeURIComponent(participant)}"
+                            aria-label="Unregister ${participant}"
+                            title="Unregister participant"
+                          >&times;</button>
+                        </li>`
+                    )
+                    .join("")
+                : "<li class=\"no-participants\">No participants yet</li>"}
+            </ul>
+          </div>
         `;
 
+
+  activitiesList.addEventListener("click", async (event) => {
+    const deleteButton = event.target.closest(".delete-participant");
+    if (!deleteButton) return;
+
+    deleteButton.disabled = true;
+
+    try {
+      const activity = decodeURIComponent(deleteButton.dataset.activity);
+      const email = decodeURIComponent(deleteButton.dataset.email);
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.detail || "Failed to unregister participant");
+      }
+
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
+      fetchActivities();
+    } catch (error) {
+      deleteButton.disabled = false;
+      console.error("Error unregistering participant:", error);
+    }
+  });
         activitiesList.appendChild(activityCard);
 
         // Add option to select dropdown
